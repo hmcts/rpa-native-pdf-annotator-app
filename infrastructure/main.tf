@@ -3,6 +3,13 @@ locals {
   ase_name = "${data.terraform_remote_state.core_apps_compute.ase_name[0]}"
   local_env = "${(var.env == "preview" || var.env == "spreview") ? (var.env == "preview" ) ? "aat" : "saat" : var.env}"
   shared_vault_name = "${var.shared_product_name}-${local.local_env}"
+
+  asp_name = "${var.product}-${var.env}"
+  // I2 in prod like env, I1 everywhere else
+  // If you are a new team, try using I1 everywhere, if you have performance problems then use I2 - This must have the same value in shared infrastructure
+  sku_size = "${var.env == "prod" || var.env == "sprod" || var.env == "aat" ? "I2" : "I1"}"
+  // Tune capacity as needed, should be 1 in non production environments increase further if required - This must have the same value in shared infrastructure
+  capacity = "${var.env == "prod" || var.env == "sprod" || var.env == "aat" ? "2" : "1"}"
 }
 # "${local.ase_name}"
 # "${local.app_full_name}"
@@ -20,9 +27,11 @@ module "app" {
   additional_host_name = "${local.app_full_name}-${var.env}.service.${var.env}.platform.hmcts.net"
   https_only="false"
   common_tags  = "${var.common_tags}"
-  asp_rg = "${var.shared_product_name}-${var.env}"
-  asp_name = "${var.shared_product_name}-${var.env}"
   appinsights_instrumentation_key = "${var.appinsights_instrumentation_key}"
+  asp_rg = "${var.shared_product_name}-${var.env}"  // or should var.shared_prod_name be var.product? Options are "rpa", "em" and "annotation"
+  asp_name = "${var.shared_product_name}-${var.env}"  // or should var.shared_prod_name be var.product? Options are "rpa", "em" and "annotation"
+  instance_size = "${local.sku_size}"
+
 
   app_settings = {
     POSTGRES_HOST = "${module.db.host_name}"
