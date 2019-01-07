@@ -28,10 +28,11 @@ module "app" {
   https_only="false"
   common_tags  = "${var.common_tags}"
   appinsights_instrumentation_key = "${var.appinsights_instrumentation_key}"
-  asp_rg = "${var.shared_product_name}-${var.env}"  // or should var.shared_prod_name be var.product? Options are "rpa", "em" and "annotation"
-  asp_name = "${var.shared_product_name}-${var.env}"  // or should var.shared_prod_name be var.product? Options are "rpa", "em" and "annotation"
   instance_size = "${local.sku_size}"
-
+  // should be the same as in shared-infra repo. var.shared_prod_name (rpa), var.product (em) or "annotation"?
+  asp_rg = "${var.product}-${var.env}" // this was var.shared_product_name
+  // should be the same as in shared-infra repo. var.shared_prod_name (rpa), var.product (em) or "annotation"?
+  asp_name = "${var.product}-${var.env}" // this was var.shared_product_name
 
   app_settings = {
     POSTGRES_HOST = "${module.db.host_name}"
