@@ -15,6 +15,12 @@ locals {
 # "${local.app_full_name}"
 # "${local.local_env}"
 
+# Make sure the resource group exists
+resource "azurerm_resource_group" "rg" {
+  name     = "${var.product}-${var.component}-${var.env}"
+  location = "${var.location}"
+}
+
 module "app" {
   source = "git@github.com:hmcts/cnp-module-webapp?ref=master"
   product = "${local.app_full_name}"
@@ -107,18 +113,19 @@ module "db" {
   common_tags  = "${var.common_tags}"
 }
 
+// CET doesn't have this
 provider "vault" {
   address = "https://vault.reform.hmcts.net:6200"
-}
-
-data "azurerm_key_vault_secret" "s2s_key" {
-  name      = "microservicekey-em-npa-app"
-  vault_uri = "https://s2s-${local.local_env}.vault.azure.net/"
 }
 
 data "azurerm_key_vault" "shared_key_vault" {
   name = "${local.shared_vault_name}"
   resource_group_name = "${local.shared_vault_name}"
+}
+
+data "azurerm_key_vault_secret" "s2s_key" {
+  name      = "microservicekey-em-npa-app"
+  vault_uri = "https://s2s-${local.local_env}.vault.azure.net/"
 }
 
 //data "azurerm_key_vault_secret" "s2s_secret" {

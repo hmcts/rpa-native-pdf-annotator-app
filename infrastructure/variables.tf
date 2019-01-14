@@ -132,6 +132,8 @@ variable "application_type" {
   default     = "Web"
   description = "Type of Application Insights (Web/Other)"
 }
+
+
 ////////////////////////////////////////////////
 // Toggle Features
 ////////////////////////////////////////////////
