@@ -26,7 +26,10 @@ It uses:
 #Cloning repo and running though docker
 git clone https://github.com/hmcts/rpa-native-pdf-annotator-app.git
 cd rpa-native-pdf-annotator-app/
-./buildrundm-docker.sh
+az login
+az acr login --name hmcts --subscription 1c4f0704-a29e-403d-b719-b90c34ef14c9
+docker-compose -f docker-compose-dependencies.yml pull
+docker-compose -f docker-compose-dependencies.yml up
 ```
 
 ```bash
