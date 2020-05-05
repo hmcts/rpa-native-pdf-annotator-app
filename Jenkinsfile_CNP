@@ -1,5 +1,5 @@
 #!groovy
-
+import uk.gov.hmcts.contino.AppPipelineDsl
 properties([
         [
                 $class: 'GithubProjectProperty',
@@ -11,7 +11,7 @@ properties([
         ])
 ])
 
-@Library("Infrastructure")
+@Library("Infrastructure@add-debug")
 
 def type = "java"
 def product = "em"
@@ -37,10 +37,13 @@ static LinkedHashMap<String, Object> secret(String secretName, String envVar) {
 
 // Vars for Kubernetes
 env.IDAM_API_BASE_URI = 'https://idam-api.aat.platform.hmcts.net'
+env.OPEN_ID_API_BASE_URI = 'https://idam-web-public.aat.platform.hmcts.net/o'
+env.OIDC_ISSUER_BASE_URI = 'https://forgerock-am.service.core-compute-idam-aat.internal:8443/openam/oauth2/hmcts'
 env.S2S_BASE_URI = 'http://rpe-service-auth-provider-aat.service.core-compute-aat.internal'
 env.IDAM_WEBSHOW_WHITELIST = 'https://em-show-aat.service.core-compute-aat.internal/oauth2/callback'
 env.DM_STORE_APP_URL = 'http://dm-store-aat.service.core-compute-aat.internal'
 env.EM_ANNO_APP_URL = 'http://em-anno-aat.service.core-compute-aat.internal'
+env.PACT_BROKER_FULL_URL = 'https://pact-broker.platform.hmcts.net'
 
 def vaultOverrides = [
         'preview' : 'aat',
@@ -49,7 +52,6 @@ def vaultOverrides = [
 
 withPipeline(type , product, component) {
     enableDbMigration('em-npa')
-    enableDockerBuild()
     overrideVaultEnvironments(vaultOverrides)
     loadVaultSecrets(secrets)
     installCharts()
@@ -61,4 +63,8 @@ withPipeline(type , product, component) {
         sh ./publish-swagger-docs.sh
          '''
     }
+    enablePactAs([
+            AppPipelineDsl.PactRoles.CONSUMER
+    ])
+
 }

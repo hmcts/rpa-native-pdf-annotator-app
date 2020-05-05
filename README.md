@@ -24,12 +24,25 @@ It uses:
 ## Quickstart
 ```bash
 #Cloning repo and running though docker
+
 git clone https://github.com/hmcts/rpa-native-pdf-annotator-app.git
 cd rpa-native-pdf-annotator-app/
-./buildrundm-docker.sh
+
+az login
+az acr login --name hmctsprivate --subscription DCD-CNP-Prod
+az acr login --name hmctspublic --subscription 1c4f0704-a29e-403d-b719-b90c34ef14c9
+az acr login --name hmctsprivate --subscription 1c4f0704-a29e-403d-b719-b90c34ef14c9
+./gradlew assemble
+docker-compose -f docker-compose-dependencies.yml pull
+docker-compose -f docker-compose-dependencies.yml up --build
 ```
 
-```bash
+To set up IDAM data run: `./idam-client-setup.sh`. 
+To check the data you can log into IDAM-web-admin `http://localhost:8082` with:
+Username `idamOwner@hmcts.net`
+Password `Ref0rmIsFun`
+
+`bash
 #Run this script to aquire IDAM credentials required for DM API.
 ./idam.sh
 ```
@@ -263,3 +276,27 @@ Here are some other functionalities it provides:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+
+### Running contract or pact tests:
+
+You can run contract or pact tests as follows:
+
+```
+./gradlew clean
+```
+
+```
+./gradlew contract
+```
+
+You can then publish your pact tests locally by first running the pact docker-compose:
+
+```
+docker-compose -f docker-pactbroker-compose.yml up
+```
+
+and then using it to publish your tests:
+
+```
+./gradlew pactPublish
+```
