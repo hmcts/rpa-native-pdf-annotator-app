@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.em.npa.rest;
 
 import okhttp3.OkHttpClient;
-import okhttp3.Response;
 import okhttp3.mock.MockInterceptor;
 import okhttp3.mock.Rule;
 import org.junit.Before;
@@ -21,27 +20,22 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.auth.checker.core.SubjectResolver;
-import uk.gov.hmcts.reform.auth.checker.core.user.User;
 import uk.gov.hmcts.reform.authorisation.generators.AuthTokenGenerator;
 import uk.gov.hmcts.reform.em.npa.Application;
 import uk.gov.hmcts.reform.em.npa.TestSecurityConfiguration;
 import uk.gov.hmcts.reform.em.npa.domain.DocumentTask;
 import uk.gov.hmcts.reform.em.npa.domain.enumeration.TaskState;
 import uk.gov.hmcts.reform.em.npa.repository.DocumentTaskRepository;
+import uk.gov.hmcts.reform.em.npa.rest.errors.ExceptionTranslator;
 import uk.gov.hmcts.reform.em.npa.service.DocumentTaskService;
 import uk.gov.hmcts.reform.em.npa.service.dto.DocumentTaskDTO;
 import uk.gov.hmcts.reform.em.npa.service.mapper.DocumentTaskMapper;
-import uk.gov.hmcts.reform.em.npa.rest.errors.ExceptionTranslator;
 
 import javax.persistence.EntityManager;
-import java.io.File;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static uk.gov.hmcts.reform.em.npa.rest.TestUtil.createFormattingConversionService;
@@ -91,13 +85,10 @@ public class DocumentTaskResourceIntTest {
     @MockBean
     private AuthTokenGenerator authTokenGenerator;
 
-    @MockBean
-    private SubjectResolver<User> userResolver;
-
     @Autowired
     private EntityManager em;
 
-    @Value("${dm-store-app.base-url}")
+    @Value("${document_management.base-url}")
     private String dmBaseUrl;
 
     @Value("${em-annotation-app.base-url}")
@@ -151,6 +142,9 @@ public class DocumentTaskResourceIntTest {
 
         ClassLoader classLoader = Application.class.getClassLoader();
 
+        mockInterceptor.addRule(new Rule.Builder().get().url(dmBaseUrl + "/documents/AAAAAAAAAA")
+            .respond(getResponseBody()));
+
         mockInterceptor.addRule(new Rule.Builder().get().url(dmBaseUrl + "/documents/AAAAAAAAAA/binary")
                 .respond(classLoader.getResourceAsStream("annotationTemplate.pdf")));
 
@@ -161,8 +155,6 @@ public class DocumentTaskResourceIntTest {
                 .respond("{\"_embedded\": {\"documents\": [{\"_links\":{\"self\":{\"href\":\"http://aa.bvv.com/new-doc_url\"}}}]}}"));
 
         int databaseSizeBeforeCreate = documentTaskRepository.findAll().size();
-
-        BDDMockito.given(userResolver.getTokenDetails(documentTask.getJwt())).willReturn(new User("id", null));
 
         // Create the DocumentTask
         DocumentTaskDTO documentTaskDTO = documentTaskMapper.toDto(documentTask);
@@ -193,6 +185,9 @@ public class DocumentTaskResourceIntTest {
 
         ClassLoader classLoader = Application.class.getClassLoader();
 
+        mockInterceptor.addRule(new Rule.Builder().get().url(dmBaseUrl + "/documents/AAAAAAAAAA")
+            .respond(getResponseBody()));
+
         mockInterceptor.addRule(new Rule.Builder().get().url(dmBaseUrl + "/documents/AAAAAAAAAA/binary")
                 .respond(classLoader.getResourceAsStream("annotationTemplate.pdf")));
 
@@ -209,8 +204,6 @@ public class DocumentTaskResourceIntTest {
                 .respond("{\"_links\":{\"self\":{\"href\":\"http://aa.bvv.com/new-doc_url\"}}}"));
 
         int databaseSizeBeforeCreate = documentTaskRepository.findAll().size();
-
-        BDDMockito.given(userResolver.getTokenDetails(documentTask.getJwt())).willReturn(new User("id", null));
 
         restDocumentTaskMockMvc.perform(post("/api/document-tasks")
                 .header("Authorization", documentTask.getJwt())
@@ -398,5 +391,51 @@ public class DocumentTaskResourceIntTest {
     public void testEntityFromId() {
         assertThat(documentTaskMapper.fromId(42L).getId()).isEqualTo(42);
         assertThat(documentTaskMapper.fromId(null)).isNull();
+    }
+
+    private String getResponseBody() {
+        return "{\n" +
+            "  \"originalDocumentName\": \"fist.png\",\n" +
+            "  \"_links\": {\n" +
+            "    \"self\": {\n" +
+            "      \"href\": \"http://localhost:4603/documents/AAAAAAAAAA\"\n" +
+            "    },\n" +
+            "    \"binary\": {\n" +
+            "      \"href\": \"http://localhost:4603/documents/AAAAAAAAAA/binary\"\n" +
+            "    },\n" +
+            "    \"thumbnail\": {\n" +
+            "      \"href\": \"http://localhost:4603/documents/AAAAAAAAAA/thumbnail\"\n" +
+            "    }\n" +
+            "  },\n" +
+            "  \"_embedded\": {\n" +
+            "    \"allDocumentVersions\": {\n" +
+            "      \"_embedded\": {\n" +
+            "        \"documentVersions\": [\n" +
+            "          {\n" +
+            "            \"size\": 320467,\n" +
+            "            \"mimeType\": \"image/png\",\n" +
+            "            \"originalDocumentName\": \"fist.png\",\n" +
+            "            \"createdBy\": \"\",\n" +
+            "            \"createdOn\": \"2020-05-01T10:54:39+0000\",\n" +
+            "            \"_links\": {\n" +
+            "              \"document\": {\n" +
+            "                \"href\": \"http://localhost:4603/documents/AAAAAAAAAA\"\n" +
+            "              },\n" +
+            "              \"self\": {\n" +
+            "                \"href\": \"http://localhost:4603/documents/6bfbf266-d106-43af-a0f0-746bf5875beb/versions/6d7096bd-8c94-43ce-bf6c-c1349ddf69d1\"\n" +
+            "              },\n" +
+            "              \"binary\": {\n" +
+            "                \"href\": \"http://localhost:4603/documents/6bfbf266-d106-43af-a0f0-746bf5875beb/versions/6d7096bd-8c94-43ce-bf6c-c1349ddf69d1/binary\"\n" +
+            "              },\n" +
+            "              \"thumbnail\": {\n" +
+            "                \"href\": \"http://localhost:4603/documents/6bfbf266-d106-43af-a0f0-746bf5875beb/versions/6d7096bd-8c94-43ce-bf6c-c1349ddf69d1/thumbnail\"\n" +
+            "              }\n" +
+            "            }\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
     }
 }
